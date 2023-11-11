@@ -81,8 +81,14 @@ public class Node {
     public List<bool> OutputIsList { get; set; }
     [DataMember(Name = "output_name")]
     public List<string> OutputNames { get; set; }
-    
-    
+    [DataMember(Name = "display_name")]
+    public string DisplayName { get; set; }
+    [DataMember(Name = "description")]
+    public string Description { get; set; }
+    [DataMember(Name = "category")]
+    public string Category { get; set; }
+    [DataMember(Name = "output_node")]
+    public bool IsOutputNode { get; set; }
 }
 
 [DataContract]
