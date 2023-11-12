@@ -89,6 +89,18 @@ public class Node {
     public string Category { get; set; }
     [DataMember(Name = "output_node")]
     public bool IsOutputNode { get; set; }
+    
+    public Node() {
+        Name = "";
+        Input = new();
+        Outputs = new();
+        OutputIsList = new();
+        OutputNames = new();
+        DisplayName = "";
+        Description = "";
+        Category = "";
+        IsOutputNode = false;
+    }
 }
 
 [DataContract]
@@ -100,8 +112,11 @@ public struct Input {
     [DataMember]
     public List<InputField> Hidden { get; set; }
 
-    
-    
+    public Input() {
+        Required = new();
+        Optional = new();
+        Hidden = new();
+    }
 }
 
 public struct InputField {
