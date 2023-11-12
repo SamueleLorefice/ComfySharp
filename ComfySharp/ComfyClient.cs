@@ -72,11 +72,11 @@ public class ComfyClient {
 [DataContract, JsonSerializable(typeof(Node))]
 public class Node {
     [DataMember(Name = "name")]
-    public required string Name { get; set; }
+    public string Name { get; set; }
     [DataMember(Name = "input")]
-    public required Input Input { get; set; }
+    public Input Input { get; set; }
     [DataMember(Name = "output")]
-    public required List<PrimitiveType> Outputs { get; set; }
+    public List<PrimitiveType> Outputs { get; set; }
     [DataMember(Name = "output_is_list")]
     public List<bool> OutputIsList { get; set; }
     [DataMember(Name = "output_name")]
@@ -93,15 +93,22 @@ public class Node {
 
 [DataContract]
 public struct Input {
-    public required InputField[] Required { get; set; }
-    public InputField[] Optional { get; set; }
+    [DataMember]
+    public List<InputField> Required { get; set; }
+    [DataMember]
+    public List<InputField> Optional { get; set; }
+    [DataMember]
+    public List<InputField> Hidden { get; set; }
+
+    
+    
 }
 
 public struct InputField {
     [DataMember(Name = "name")]
-    public required string Name { get; set; }
-    public required List<Object> Type { get; set; }
+    public string Name { get; set; }
     
+    public PrimitiveType Type { get; set; }
 }
 
 public enum PrimitiveType {
@@ -111,6 +118,7 @@ public enum PrimitiveType {
     CLIP_VISION_OUTPUT,
     CONDITIONING,
     CONTROL_NET,
+    EXTRA_PNGINFO,
     FLOAT,
     GLIGEN,
     IMAGE,
@@ -118,10 +126,12 @@ public enum PrimitiveType {
     LATENT,
     MASK,
     MODEL,
+    PROMPT,
     SAMPLER,
     SIGMAS,
     STRING,
     STYLE_MODEL,
+    UNIQUE_ID,
     UPSCALE_MODEL,
     VAE,
 }
@@ -129,11 +139,11 @@ public enum PrimitiveType {
 [DataContract, JsonSerializable(typeof(ImageInfo))]
 public class ImageInfo {
     [DataMember(Name = "name")]
-    public required string Name { get; set; }
+    public string Name { get; set; }
     [DataMember(Name = "subfolder")]
-    public required string Subfolder { get; set; }
+    public string Subfolder { get; set; }
     [DataMember(Name = "type")]
-    public required DirType Type { get; set; }
+    public DirType Type { get; set; }
 }
 
 [DataContract]
