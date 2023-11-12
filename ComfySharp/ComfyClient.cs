@@ -1,9 +1,8 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Net;
 using System.Net.Http.Json;
-using System.Runtime.Serialization;
 using System.Text.Json;
-using System.Text.Json.Serialization;
+using ComfySharp.Types;
 
 namespace ComfySharp;
 
@@ -49,15 +48,11 @@ public class ComfyClient {
 
         if (req is { IsSuccessStatusCode: true, Content: not null }) {
             var doc = await req.Content.ReadFromJsonAsync<JsonDocument>();
+            ObjectInfoParser.Parse(doc, out nodes);
 
-            foreach (var node in doc.RootElement.EnumerateObject()) {
-                Node n;
-                
-                
-            }
         }
             
-        return null;
+        throw new NotImplementedException();
     }
     
     public async Task<byte[]?> GetImage(string filename) {
@@ -67,103 +62,4 @@ public class ComfyClient {
             return await req.Content.ReadFromJsonAsync<byte[]>();
         return null;
     }
-}
-
-[DataContract, JsonSerializable(typeof(Node))]
-public class Node {
-    [DataMember(Name = "name")]
-    public string Name { get; set; }
-    [DataMember(Name = "input")]
-    public Input Input { get; set; }
-    [DataMember(Name = "output")]
-    public List<PrimitiveType> Outputs { get; set; }
-    [DataMember(Name = "output_is_list")]
-    public List<bool> OutputIsList { get; set; }
-    [DataMember(Name = "output_name")]
-    public List<string> OutputNames { get; set; }
-    [DataMember(Name = "display_name")]
-    public string DisplayName { get; set; }
-    [DataMember(Name = "description")]
-    public string Description { get; set; }
-    [DataMember(Name = "category")]
-    public string Category { get; set; }
-    [DataMember(Name = "output_node")]
-    public bool IsOutputNode { get; set; }
-    
-    public Node() {
-        Name = "";
-        Input = new();
-        Outputs = new();
-        OutputIsList = new();
-        OutputNames = new();
-        DisplayName = "";
-        Description = "";
-        Category = "";
-        IsOutputNode = false;
-    }
-}
-
-[DataContract]
-public struct Input {
-    [DataMember]
-    public List<InputField> Required { get; set; }
-    [DataMember]
-    public List<InputField> Optional { get; set; }
-    [DataMember]
-    public List<InputField> Hidden { get; set; }
-
-    public Input() {
-        Required = new();
-        Optional = new();
-        Hidden = new();
-    }
-}
-
-public struct InputField {
-    [DataMember(Name = "name")]
-    public string Name { get; set; }
-    
-    public PrimitiveType Type { get; set; }
-}
-
-public enum PrimitiveType {
-    ANY,
-    CLIP,
-    CLIP_VISION,
-    CLIP_VISION_OUTPUT,
-    CONDITIONING,
-    CONTROL_NET,
-    EXTRA_PNGINFO,
-    FLOAT,
-    GLIGEN,
-    IMAGE,
-    INT,
-    LATENT,
-    MASK,
-    MODEL,
-    PROMPT,
-    SAMPLER,
-    SIGMAS,
-    STRING,
-    STYLE_MODEL,
-    UNIQUE_ID,
-    UPSCALE_MODEL,
-    VAE,
-}
-
-[DataContract, JsonSerializable(typeof(ImageInfo))]
-public class ImageInfo {
-    [DataMember(Name = "name")]
-    public string Name { get; set; }
-    [DataMember(Name = "subfolder")]
-    public string Subfolder { get; set; }
-    [DataMember(Name = "type")]
-    public DirType Type { get; set; }
-}
-
-[DataContract]
-public enum DirType {
-    [DataMember(Name = "input")] Input,
-    [DataMember(Name = "temp")] Temp,
-    [DataMember(Name = "output")] Output
 }

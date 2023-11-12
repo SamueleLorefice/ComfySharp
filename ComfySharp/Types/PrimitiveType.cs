@@ -1,0 +1,26 @@
+﻿namespace ComfySharp.Types;
+
+public enum PrimitiveType {
+    ANY,
+    CLIP,
+    CLIP_VISION,
+    CLIP_VISION_OUTPUT,
+    CONDITIONING,
+    CONTROL_NET,
+    EXTRA_PNGINFO,
+    FLOAT,
+    GLIGEN,
+    IMAGE,
+    INT,
+    LATENT,
+    MASK,
+    MODEL,
+    PROMPT,
+    SAMPLER,
+    SIGMAS,
+    STRING,
+    STYLE_MODEL,
+    UNIQUE_ID,
+    UPSCALE_MODEL,
+    VAE,
+}
