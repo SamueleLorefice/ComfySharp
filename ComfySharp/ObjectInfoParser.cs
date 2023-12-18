@@ -3,11 +3,11 @@ using System.Text.Json;
 using ComfySharp.Types;
 
 namespace ComfySharp; 
-
+[Obsolete("This class is obsolete, use NodeDBGenerator instead",false)]
 public static class ObjectInfoParser {
     
     public static void Parse(JsonDocument document, out List<ExpandoObject> nodes) {
-        NodeDBGenerator dbGenerator = new();
+        NodeDBGenerator dbGenerator = new(new ConversionSettings());
         dbGenerator.GenerateNodes(document);
         nodes = dbGenerator.GetNodes();
         dbGenerator.GenerateClasses(document);

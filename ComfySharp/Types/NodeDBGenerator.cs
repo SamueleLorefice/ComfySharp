@@ -3,12 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using System.Dynamic;
+using System.Net;
 using System.Runtime.CompilerServices;
 
 namespace ComfySharp.Types;
 
 public class NodeDBGenerator {
     private List<ExpandoObject> nodes;
+    private ConversionSettings settings;
     
     private List<string> knownTypes = new();
     public List<string> GetKnownTypes() => knownTypes;
@@ -20,8 +22,9 @@ public class NodeDBGenerator {
     private int typeFields = 0;
     private int enumFields = 0;
     
-    public NodeDBGenerator() {
+    public NodeDBGenerator(ConversionSettings settings) {
         nodes = new();   
+        this.settings = settings;
     }
     
     public void ResetDb() => nodes.Clear();
@@ -34,8 +37,6 @@ public class NodeDBGenerator {
         if (!knownTypes.Contains(type)) {
             knownTypes.Add(type);
             Console.WriteLine("Added new known type: {0}", type);
-        } else {
-            Console.WriteLine("Type {0} already known, skipped.", type);
         }
         typeFields++;
     }
@@ -54,7 +55,7 @@ public class NodeDBGenerator {
             values.ToList().ForEach(value => {
                 if (!knownEnums[type].Contains(value)) {
                     knownEnums[type].Add(value);
-                    Console.WriteLine("Added new value to known enum: {0}", value);
+                    Console.WriteLine("Added new value to already known enum: {0}", value);
                 }
             });
         }
@@ -112,12 +113,20 @@ public class NodeDBGenerator {
         // if element 0 is a string, this is a type
         if (inputProperty.Value[0].ValueKind == JsonValueKind.String) 
             AddKnownType(inputProperty.Value[0].ToString());
-        // else, if element 0 is an array, this is an enum
+        // else, if element 0 is an array, this is an enum or a list.
         else if (inputProperty.Value[0].ValueKind == JsonValueKind.Array) {
+            //if the elements inside the array are not strings, this is a list of objects and might require special handling
+            if (inputProperty.Value[0].EnumerateArray().Current.ValueKind != JsonValueKind.String) {
+                Console.WriteLine("Encountered a special case: {0}", inputProperty.Name);
+                return;
+            }
+            // these are all lists of strings and not enums
+            if (inputProperty.Name == "image" || inputProperty.Name == "ckpt_name" || inputProperty.Name == "lora_name" || inputProperty.Name == "control_net_name"){
+                
+            }
             List<string> enumValues = new();
             inputProperty.Value[0].EnumerateArray().ToList().ForEach(value => enumValues.Add(value.ToString()));
             AddKnownEnum(inputProperty.Name, enumValues);
-
         }
     }
 

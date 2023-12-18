@@ -10,6 +10,7 @@ namespace ComfySharp;
 public class ComfyClient {
     private HttpClient client;
     private List<ExpandoObject> nodes;
+    private NodeDBGenerator dbGenerator;
     
     public string BaseUrl { get; set; }
     
@@ -20,6 +21,19 @@ public class ComfyClient {
             DefaultRequestHeaders = { { "User-Agent", "ComfySharp" } }
         };
         nodes= new();
+
+        try {
+            dbGenerator = new(ConversionSettings.FromFile("conv_config.json"));
+        }
+        catch (Exception e) {
+            Console.WriteLine(e);
+        }
+        finally {
+            ConversionSettings settings = new();
+            settings.Save("conv_config.json");
+            dbGenerator = new(settings);
+            Console.WriteLine("created empty settings file");
+        }
     }
 
     public async Task<string[]?> GetEmbeddings() {
@@ -42,14 +56,20 @@ public class ComfyClient {
         return null;
     }
 
-    //public async Task<>GetHistory
-
+    
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
+    public async Task<List<HistoryEntry>?> GetHistory() {
+        throw new NotImplementedException();
+    }
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+    
     public async Task<List<Node>?> GetObjectInfo() {
         var req = await client.GetAsync("/object_info");
 
         if (req is { IsSuccessStatusCode: true, Content: not null }) {
             var doc = await req.Content.ReadFromJsonAsync<JsonDocument>();
-            ObjectInfoParser.Parse(doc, out nodes);
+            
+            //ObjectInfoParser.Parse(doc, out nodes);
         }
 
         return null;
