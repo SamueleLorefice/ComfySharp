@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Dynamic;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -8,7 +9,7 @@ namespace ComfySharp;
 
 public class ComfyClient {
     private HttpClient client;
-    private List<Node> nodes;
+    private List<ExpandoObject> nodes;
     
     public string BaseUrl { get; set; }
     
@@ -18,7 +19,7 @@ public class ComfyClient {
             BaseAddress = new Uri(baseUrl),
             DefaultRequestHeaders = { { "User-Agent", "ComfySharp" } }
         };
-        nodes= new List<Node>();
+        nodes= new();
     }
 
     public async Task<string[]?> GetEmbeddings() {
@@ -49,10 +50,10 @@ public class ComfyClient {
         if (req is { IsSuccessStatusCode: true, Content: not null }) {
             var doc = await req.Content.ReadFromJsonAsync<JsonDocument>();
             ObjectInfoParser.Parse(doc, out nodes);
-
         }
-            
-        throw new NotImplementedException();
+
+        return null;
+        //throw new NotImplementedException();
     }
     
     public async Task<byte[]?> GetImage(string filename) {
