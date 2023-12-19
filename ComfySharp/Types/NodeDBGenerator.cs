@@ -18,6 +18,9 @@ public class NodeDBGenerator {
     private Dictionary<string, List<string>> knownEnums = new();
     public Dictionary<string, List<string>> GetKnownEnums() => knownEnums;
     
+    private Dictionary<string, List<string>> knownStringLists = new();
+    public Dictionary<string, List<string>> GetKnownStringLists() => knownStringLists;
+    
     public int Count => nodes.Count;
     private int typeFields = 0;
     private int enumFields = 0;
@@ -60,6 +63,26 @@ public class NodeDBGenerator {
             });
         }
         enumFields++;
+    }
+    
+    /// <summary>
+    /// Adds or updates a known string list, avoids duplicates.
+    /// </summary>
+    /// <param name="type">stringList typename</param>
+    /// <param name="values">Collection of string values for this StringList</param>
+    private void AddKnownStringList(string type, ICollection<string> values) {
+        if (!knownStringLists.ContainsKey(type)) {
+            knownStringLists.Add(type, values.ToList());
+            Console.WriteLine("Added new known stringList: {0}", type);
+        }
+        else {
+            values.ToList().ForEach(value => {
+                if (!knownStringLists[type].Contains(value)) {
+                    knownStringLists[type].Add(value);
+                    Console.WriteLine("Added new value to already known stringList: {0}", value);
+                }
+            });
+        }
     }
     
     public void GenerateClasses(JsonDocument document) {
@@ -120,13 +143,16 @@ public class NodeDBGenerator {
                 Console.WriteLine("Encountered a special case: {0}", inputProperty.Name);
                 return;
             }
-            // these are all lists of strings and not enums
-            if (inputProperty.Name == "image" || inputProperty.Name == "ckpt_name" || inputProperty.Name == "lora_name" || inputProperty.Name == "control_net_name"){
-                
-            }
-            List<string> enumValues = new();
+            
+            List<string> enumValues = new(); //holds all the values of the enum, valid for both following cases
             inputProperty.Value[0].EnumerateArray().ToList().ForEach(value => enumValues.Add(value.ToString()));
-            AddKnownEnum(inputProperty.Name, enumValues);
+            
+            // these are all lists of strings and not enums
+            if (settings.EnumConvertAsString.Contains(inputProperty.Name)) {
+                AddKnownStringList(inputProperty.Name, enumValues);
+            } else {
+                AddKnownEnum(inputProperty.Name, enumValues);
+            }
         }
     }
 

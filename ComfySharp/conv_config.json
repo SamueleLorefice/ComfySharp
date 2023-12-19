@@ -1,0 +1,33 @@
+{
+  "EnumConvertAsString": [
+    "ckpt_name",
+    "image",
+    "lora_name",
+    "control_net_name",
+    "config_name",
+    "clip_name",
+    "clip_name1",
+    "clip_name2",
+    "unet_name",
+    "model_path",
+    "hypernetwork_name",
+    "model_name",
+    "Select to add LoRA",
+    "Select to add Wildcard",
+    "preset",
+    "preset_repo_id",
+    "checkpoint",
+    "video",
+    "model",
+    "bbox_detector",
+    "pose_estimator",
+    "preprocessor",
+    "cascade_xml",
+    "style",
+    "style1",
+    "style2",
+    "style3",
+    "style4"
+  ],
+  "EnumConvertAsBool": []
+}

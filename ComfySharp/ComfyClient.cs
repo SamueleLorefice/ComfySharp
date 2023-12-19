@@ -23,14 +23,14 @@ public class ComfyClient {
         nodes= new();
 
         try {
-            dbGenerator = new(ConversionSettings.FromFile("conv_config.json"));
+            dbGenerator = new(ConversionSettings.FromFile(Path.Combine(Environment.CurrentDirectory, "conv_config.json")));
         }
         catch (Exception e) {
             Console.WriteLine(e);
         }
         finally {
             ConversionSettings settings = new();
-            settings.Save("conv_config.json");
+            settings.Save( "conv_config.json");
             dbGenerator = new(settings);
             Console.WriteLine("created empty settings file");
         }
@@ -68,7 +68,7 @@ public class ComfyClient {
 
         if (req is { IsSuccessStatusCode: true, Content: not null }) {
             var doc = await req.Content.ReadFromJsonAsync<JsonDocument>();
-            
+            dbGenerator.GenerateClasses(doc);
             //ObjectInfoParser.Parse(doc, out nodes);
         }
 
