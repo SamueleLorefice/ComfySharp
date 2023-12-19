@@ -85,8 +85,10 @@ public class NodeDBGenerator {
         }
     }
     
+    
     public void GenerateClasses(JsonDocument document) {
-        foreach (var node in document.RootElement.EnumerateObject()) ScanNode(node);
+        foreach (var node in document.RootElement.EnumerateObject())
+            ScanNode(node);
 
         Console.WriteLine("List of recognized Types:");
         foreach (var knownType in knownTypes) {
@@ -108,11 +110,14 @@ public class NodeDBGenerator {
     /// executed for a single node, progresses through the properties of the node
     /// </summary>
     private void ScanNode(JsonProperty node) {
+#if DEBUG
+        Console.WriteLine("Scanning node: {0}", node.Name); 
+#endif
         // each of this are top level properties of the node
         foreach (var property in node.Value.EnumerateObject()) {
             //if this is a list of input properties:
-            if (property.Name == "input" && property.Value.ValueKind == JsonValueKind.Object) ScanInputs(property);
-            else if (property.Name == "output" && property.Value.ValueKind == JsonValueKind.Array) ScanOutputs(property);
+            if (property is { Name: "input", Value.ValueKind: JsonValueKind.Object }) ScanInputs(property);
+            else if (property is { Name: "output", Value.ValueKind: JsonValueKind.Array }) ScanOutputs(property);
         }
     }
 
@@ -120,6 +125,9 @@ public class NodeDBGenerator {
     /// Executed on the input property inside a node
     /// </summary>
     private void ScanInputs(JsonProperty input) {
+#if DEBUG
+        Console.WriteLine("Scanning inputs of node: {0}", input.Name);
+#endif
         foreach (var inputType in input.Value.EnumerateObject()) {
             //these are related to the nodes themselves and useless for us
             if (inputType.Name == "hidden") continue;
@@ -133,25 +141,33 @@ public class NodeDBGenerator {
     /// Executed for each of the elements inside a required or optional input
     /// </summary>
     private void ScanInputField(JsonProperty inputProperty) {
+#if DEBUG
+        Console.WriteLine("Scanning input field: {0}", inputProperty.Name);
+#endif
         // if element 0 is a string, this is a type
         if (inputProperty.Value[0].ValueKind == JsonValueKind.String) 
             AddKnownType(inputProperty.Value[0].ToString());
         // else, if element 0 is an array, this is an enum or a list.
         else if (inputProperty.Value[0].ValueKind == JsonValueKind.Array) {
-            //if the elements inside the array are not strings, this is a list of objects and might require special handling
-            if (inputProperty.Value[0].EnumerateArray().Current.ValueKind != JsonValueKind.String) {
-                Console.WriteLine("Encountered a special case: {0}", inputProperty.Name);
-                return;
-            }
+            if (inputProperty.Value[0][0].GetArrayLength() >= 0) {
+                //if the elements inside the array are not strings, this is a list of objects and might require special handling
+                if (inputProperty.Value[0][0].ValueKind != JsonValueKind.String) {
+                    Console.WriteLine("Encountered a special case: {0}", inputProperty.Name);
+                    return;
+                }
+                
+                List<string> enumValues = new(); //holds all the values of the enum, valid for both following cases
+                inputProperty.Value[0].EnumerateArray().ToList().ForEach(value => enumValues.Add(value.ToString()));
             
-            List<string> enumValues = new(); //holds all the values of the enum, valid for both following cases
-            inputProperty.Value[0].EnumerateArray().ToList().ForEach(value => enumValues.Add(value.ToString()));
-            
-            // these are all lists of strings and not enums
-            if (settings.EnumConvertAsString.Contains(inputProperty.Name)) {
-                AddKnownStringList(inputProperty.Name, enumValues);
+                // these are all lists of strings and not enums
+                if (settings.EnumConvertAsString.Contains(inputProperty.Name)) {
+                    AddKnownStringList(inputProperty.Name, enumValues);
+                } else {
+                    AddKnownEnum(inputProperty.Name, enumValues);
+                }
             } else {
-                AddKnownEnum(inputProperty.Name, enumValues);
+              //if the array is empty, this is a list of unknown and might require special handling later on, for now, skip it
+              return;
             }
         }
     }

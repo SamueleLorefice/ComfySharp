@@ -9,6 +9,7 @@ public class ConversionSettings {
     [DataMember(IsRequired = true)] public List<string> EnumConvertAsString = new();
     [DataMember(IsRequired = true)] public List<string> EnumConvertAsBool = new();
     static JsonSerializerOptions jsonOpt = new() { WriteIndented = true, IncludeFields = true };
+    
     public static ConversionSettings FromFile(string path) {
         if (!File.Exists(path)) throw new FileNotFoundException("Could not find settings file", path);
         string json = File.ReadAllText(path);

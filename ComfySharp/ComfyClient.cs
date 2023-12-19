@@ -29,10 +29,12 @@ public class ComfyClient {
             Console.WriteLine(e);
         }
         finally {
-            ConversionSettings settings = new();
-            settings.Save( "conv_config.json");
-            dbGenerator = new(settings);
-            Console.WriteLine("created empty settings file");
+            if (dbGenerator is null) {
+                ConversionSettings settings = new();
+                settings.Save( "conv_config.json");
+                dbGenerator = new(settings);
+                Console.WriteLine("created empty settings file");
+            }
         }
     }
 
