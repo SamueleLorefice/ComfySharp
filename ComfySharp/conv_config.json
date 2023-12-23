@@ -1,4 +1,10 @@
 {
+  "BlacklistedNodes" : [
+    "CheckpointLoader|pysssss",
+    "LoraLoader|pysssss",
+    "IFRNet VFI",
+    "RIFE VFI"
+  ],
   "EnumConvertAsString": [
     "ckpt_name",
     "image",

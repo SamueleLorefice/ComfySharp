@@ -53,8 +53,7 @@ public class NodeDBGenerator {
         if (!knownEnums.ContainsKey(type)) {
             knownEnums.Add(type, values.ToList());
             Console.WriteLine("Added new known enum: {0}", type);
-        }
-        else {
+        } else {
             values.ToList().ForEach(value => {
                 if (!knownEnums[type].Contains(value)) {
                     knownEnums[type].Add(value);
@@ -74,8 +73,7 @@ public class NodeDBGenerator {
         if (!knownStringLists.ContainsKey(type)) {
             knownStringLists.Add(type, values.ToList());
             Console.WriteLine("Added new known stringList: {0}", type);
-        }
-        else {
+        } else {
             values.ToList().ForEach(value => {
                 if (!knownStringLists[type].Contains(value)) {
                     knownStringLists[type].Add(value);
@@ -113,6 +111,12 @@ public class NodeDBGenerator {
 #if DEBUG
         Console.WriteLine("Scanning node: {0}", node.Name); 
 #endif
+        // if this node is blacklisted, skip it
+        if (settings.BlacklistedNodes.Contains(node.Name)) {
+            Console.WriteLine("Skipping blacklisted node: {0}", node.Name);
+            return;
+        }
+        
         // each of this are top level properties of the node
         foreach (var property in node.Value.EnumerateObject()) {
             //if this is a list of input properties:
@@ -144,49 +148,47 @@ public class NodeDBGenerator {
 #if DEBUG
         Console.WriteLine("Scanning input field: {0}", inputProperty.Name);
 #endif
+        
         // if element 0 is a string, this is a type
-        if (inputProperty.Value[0].ValueKind == JsonValueKind.String) 
+        if (inputProperty.Value[0].ValueKind == JsonValueKind.String) {
             AddKnownType(inputProperty.Value[0].ToString());
-        // else, if element 0 is an array, this is an enum or a list.
-        else if (inputProperty.Value[0].ValueKind == JsonValueKind.Array) {
-            if (inputProperty.Value[0][0].GetArrayLength() >= 0) {
+            return;
+        }
+        
+        // if element 0 is an array, this is an enum or a list.
+        if (inputProperty.Value[0].ValueKind == JsonValueKind.Array) {
+            
+            var firstElement = inputProperty.Value.EnumerateArray().ToArray()[0];
+            
+            if (firstElement.GetArrayLength() > 0) {
                 //if the elements inside the array are not strings, this is a list of objects and might require special handling
-                if (inputProperty.Value[0][0].ValueKind != JsonValueKind.String) {
+                if (firstElement[0].ValueKind != JsonValueKind.String) {
                     Console.WriteLine("Encountered a special case: {0}", inputProperty.Name);
+                    Console.WriteLine("First element of array is not a string, but a {0}", firstElement[0].ValueKind);
                     return;
                 }
-                
+
                 List<string> enumValues = new(); //holds all the values of the enum, valid for both following cases
-                inputProperty.Value[0].EnumerateArray().ToList().ForEach(value => enumValues.Add(value.ToString()));
-            
+                firstElement.EnumerateArray().ToList().ForEach(value => enumValues.Add(value.ToString()));
+
                 // these are all lists of strings and not enums
                 if (settings.EnumConvertAsString.Contains(inputProperty.Name)) {
                     AddKnownStringList(inputProperty.Name, enumValues);
-                } else {
+                }
+                else {
                     AddKnownEnum(inputProperty.Name, enumValues);
                 }
             } else {
-              //if the array is empty, this is a list of unknown and might require special handling later on, for now, skip it
-              return;
+                //if the array is empty, this is a list of unknown and might require special handling later on, for now, skip it
+                Console.WriteLine("Encountered a special case: {0}", inputProperty.Name);
+                Console.WriteLine("First element of array is empty");
+                Console.WriteLine("Adding to known types as empty list...");
+                AddKnownStringList(inputProperty.Name, new List<string>());
             }
         }
     }
 
     private void ScanOutputs(JsonProperty output) { }
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void GenerateNode(JsonElement data) {
