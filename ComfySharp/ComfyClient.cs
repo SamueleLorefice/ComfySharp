@@ -8,6 +8,7 @@ using ComfySharp.Types;
 namespace ComfySharp;
 
 public class ComfyClient {
+    
     private HttpClient client;
     private List<ExpandoObject> nodes;
     private NodeDBGenerator dbGenerator;
@@ -15,6 +16,8 @@ public class ComfyClient {
     public string BaseUrl { get; set; }
     
     public ComfyClient(string baseUrl) {
+        _ = new LoggingManager();
+        Logger.Info("Logger initialized.");
         BaseUrl = baseUrl;
         client = new HttpClient {
             BaseAddress = new Uri(baseUrl),
@@ -26,14 +29,14 @@ public class ComfyClient {
             dbGenerator = new(ConversionSettings.FromFile(Path.Combine(Environment.CurrentDirectory, "conv_config.json")));
         }
         catch (Exception e) {
-            Console.WriteLine(e);
+            Logger.Error(e.Message);
         }
         finally {
             if (dbGenerator is null) {
                 ConversionSettings settings = new();
                 settings.Save( "conv_config.json");
                 dbGenerator = new(settings);
-                Console.WriteLine("created empty settings file");
+                Logger.Warn("created empty settings file, please fill it out and restart the program.");
             }
         }
     }
