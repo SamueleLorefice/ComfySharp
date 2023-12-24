@@ -1,6 +1,12 @@
-﻿using System.Text.Json;
+﻿using System.Diagnostics;
+using System.Text.Json;
 using System.Dynamic;
 using System.Runtime.CompilerServices;
+using Microsoft.CSharp;
+using System.Reflection;
+using System.CodeDom;
+using System.CodeDom.Compiler;
+
 
 namespace ComfySharp;
 
@@ -20,6 +26,7 @@ public class NodeDBGenerator {
     public int Count => nodes.Count;
     private int typeFields;
     private int enumFields;
+    private int stringListFields;
     
     public NodeDBGenerator(ConversionSettings settings) {
         nodes = new();   
@@ -85,6 +92,7 @@ public class NodeDBGenerator {
                 }
             });
         }
+        stringListFields++;
     }
     
     /// <summary>
@@ -93,14 +101,16 @@ public class NodeDBGenerator {
     /// <property name="document">JsonDocument containing the nodes off an objectInfo api call</property>
     public void GenerateClasses(JsonDocument document) {
         Logger.Info("NodeDB Scan phase 1: building Types, Enum and StringLists DataBases");
-        foreach (var node in document.RootElement.EnumerateObject())
-            ScanNode(node);
-        
+        var timer = new Stopwatch();
+            timer.Start();
+        foreach (var node in document.RootElement.EnumerateObject()) ScanNode(node);
+        timer.Stop();
+        Logger.Info($"NodeDB Scan phase 1: finished in {timer.ElapsedMilliseconds} ms");
         string types = "";
         foreach (var knownType in knownTypes)
             types += $"\t{knownType}";
-        Logger.Debug($"List of recognized Types:\n{types}");
-        Logger.Info($"Total amount of types iterated: {typeFields}\n");
+        Logger.Trace($"List of recognized Types:\n{types}");
+        Logger.Info($"Total amount of detected types\\iterated:\t\t {knownTypes.Count}\t\\{typeFields}");
         
         string enums = "";
         foreach (var knownEnum in knownEnums) {
@@ -109,11 +119,37 @@ public class NodeDBGenerator {
                 enums += $"\t{value}";
             enums += "\n";
         }
-        Logger.Debug($"List of recognized Enums: {enums}");
-        Logger.Info($"Total amount of enums iterated: {enumFields}\n");
+        Logger.Trace($"List of recognized Enums: {enums}");
+        Logger.Info($"Total amount of enums detected\\iterated:\t\t {knownEnums.Count}\t\\{enumFields}");
+        Logger.Info($"Total amount of stringLists detected\\iterated:\t {knownStringLists.Count}\t\\{knownStringLists.Count}");
         
         Logger.Info("NodeDB Scan phase 2: generating types");
-        
+        IndentedTextWriter provider = new(new StringWriter());
+        CSharpCodeProvider codeProvider = new();
+        CodeCompileUnit compileUnit = new();
+        CodeNamespace ns = new("ComfySharp.Types.Generated");
+        ns.Imports.AddRange(new CodeNamespaceImport[] { new ("System"), new ("System.Collections.Generics"), new ("ComfySharp") });
+        compileUnit.Namespaces.Add(ns);
+        foreach (var knownEnum in knownEnums) {
+            CodeTypeDeclaration enumType = new() {
+                Name = knownEnum.Key,
+                IsEnum = true,
+                IsPartial = false,
+                Attributes = MemberAttributes.Public
+            };
+            foreach (var value in knownEnum.Value) {
+                enumType.Members.Add(new CodeMemberField(knownEnum.Key, value));
+            }
+            ns.Types.Add(enumType);
+            codeProvider.GenerateCodeFromCompileUnit(compileUnit, provider, new() {
+                BlankLinesBetweenMembers = false,
+                BracingStyle = "Block",
+                VerbatimOrder = true,
+                ElseOnClosing = false,
+                IndentString = "\t"
+            });
+            var enumcode = provider.InnerWriter.ToString();
+        }
     }
 
     /// <summary>
