@@ -1,29 +1,25 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Dynamic;
-using System.Net;
 using System.Runtime.CompilerServices;
 
-namespace ComfySharp.Types;
+namespace ComfySharp;
 
 public class NodeDBGenerator {
-    private List<ExpandoObject> nodes;
-    private ConversionSettings settings;
-    
-    private List<string> knownTypes = new();
+    readonly private List<ExpandoObject> nodes;
+    readonly private ConversionSettings settings;
+
+    readonly private List<string> knownTypes = new();
     public List<string> GetKnownTypes() => knownTypes;
-    
-    private Dictionary<string, List<string>> knownEnums = new();
+
+    readonly private Dictionary<string, List<string>> knownEnums = new();
     public Dictionary<string, List<string>> GetKnownEnums() => knownEnums;
-    
-    private Dictionary<string, List<string>> knownStringLists = new();
+
+    readonly private Dictionary<string, List<string>> knownStringLists = new();
     public Dictionary<string, List<string>> GetKnownStringLists() => knownStringLists;
     
     public int Count => nodes.Count;
-    private int typeFields = 0;
-    private int enumFields = 0;
+    private int typeFields;
+    private int enumFields;
     
     public NodeDBGenerator(ConversionSettings settings) {
         nodes = new();   
@@ -39,7 +35,9 @@ public class NodeDBGenerator {
     private void AddKnownType(string type) {
         if (!knownTypes.Contains(type)) {
             knownTypes.Add(type);
-            Console.WriteLine("Added new known type: {0}", type);
+            Logger.Info($"Added new known type: {type}");
+        } else {
+          Logger.Trace($"Skipped already known type: {type}");  
         }
         typeFields++;
     }
@@ -52,12 +50,15 @@ public class NodeDBGenerator {
     private void AddKnownEnum(string type, ICollection<string> values) {
         if (!knownEnums.ContainsKey(type)) {
             knownEnums.Add(type, values.ToList());
-            Console.WriteLine("Added new known enum: {0}", type);
+            Logger.Info($"Added new known enum: {type}");
+            Logger.Trace($"\tAdded values: {string.Join(", ", values)}");
         } else {
             values.ToList().ForEach(value => {
                 if (!knownEnums[type].Contains(value)) {
                     knownEnums[type].Add(value);
-                    Console.WriteLine("Added new value to already known enum: {0}", value);
+                    Logger.Info($"Added new value to already known enum: {value}");
+                } else {
+                    Logger.Trace($"Skipped already known enum value: {type}.{value}");
                 }
             });
         }
@@ -72,48 +73,49 @@ public class NodeDBGenerator {
     private void AddKnownStringList(string type, ICollection<string> values) {
         if (!knownStringLists.ContainsKey(type)) {
             knownStringLists.Add(type, values.ToList());
-            Console.WriteLine("Added new known stringList: {0}", type);
+            Logger.Info($"Added new known stringList: {type}");
+            Logger.Trace($"\tAdded values: {string.Join(", ", values)}");
         } else {
             values.ToList().ForEach(value => {
                 if (!knownStringLists[type].Contains(value)) {
                     knownStringLists[type].Add(value);
-                    Console.WriteLine("Added new value to already known stringList: {0}", value);
+                    Logger.Info($"Added new value to already known stringList: {type}");
+                } else {
+                    Logger.Trace($"Skipped already known stringList value: {type}.{value}");
                 }
             });
         }
     }
     
-    
     public void GenerateClasses(JsonDocument document) {
         foreach (var node in document.RootElement.EnumerateObject())
             ScanNode(node);
-
-        Console.WriteLine("List of recognized Types:");
-        foreach (var knownType in knownTypes) {
-            Console.WriteLine(knownType);
-        }
-        Console.WriteLine("\nTotal amount of types iterated: {0}\n", typeFields);
-        Console.WriteLine("List of recognized Enums:");
+        
+        string types = "";
+        foreach (var knownType in knownTypes)
+            types += $"\t{knownType}";
+        Logger.Info($"List of recognized Types:\n{types}");
+        Logger.Info($"Total amount of types iterated: {typeFields}\n");
+        
+        string enums = "";
         foreach (var knownEnum in knownEnums) {
-            Console.WriteLine(knownEnum.Key);
-            foreach (var value in knownEnum.Value) {
-                Console.Write("\t{0}", value);
-            }
-            Console.WriteLine();
+            enums += $"{knownEnum.Key}\n";
+            foreach (var value in knownEnum.Value)
+                enums += $"\t{value}";
+            enums += "\n";
         }
-        Console.WriteLine("\nTotal amount of enums iterated: {0}\n", enumFields);
+        Logger.Info($"List of recognized Enums: {enums}");
+        Logger.Info($"Total amount of enums iterated: {enumFields}\n");
     }
 
     /// <summary>
     /// executed for a single node, progresses through the properties of the node
     /// </summary>
     private void ScanNode(JsonProperty node) {
-#if DEBUG
-        Console.WriteLine("Scanning node: {0}", node.Name); 
-#endif
+        Logger.Debug($"Scanning node: {node.Name}"); 
         // if this node is blacklisted, skip it
         if (settings.BlacklistedNodes.Contains(node.Name)) {
-            Console.WriteLine("Skipping blacklisted node: {0}", node.Name);
+            Logger.Debug($"Skipping blacklisted node: {node.Name}");
             return;
         }
         
@@ -129,9 +131,7 @@ public class NodeDBGenerator {
     /// Executed on the input property inside a node
     /// </summary>
     private void ScanInputs(JsonProperty input) {
-#if DEBUG
-        Console.WriteLine("Scanning inputs of node: {0}", input.Name);
-#endif
+        Logger.Debug($"Scanning inputs of node: {input.Name}");
         foreach (var inputType in input.Value.EnumerateObject()) {
             //these are related to the nodes themselves and useless for us
             if (inputType.Name == "hidden") continue;
@@ -145,9 +145,7 @@ public class NodeDBGenerator {
     /// Executed for each of the elements inside a required or optional input
     /// </summary>
     private void ScanInputField(JsonProperty inputProperty) {
-#if DEBUG
-        Console.WriteLine("Scanning input field: {0}", inputProperty.Name);
-#endif
+        Logger.Debug($"Scanning input field: {inputProperty.Name}");
         
         // if element 0 is a string, this is a type
         if (inputProperty.Value[0].ValueKind == JsonValueKind.String) {
@@ -163,8 +161,8 @@ public class NodeDBGenerator {
             if (firstElement.GetArrayLength() > 0) {
                 //if the elements inside the array are not strings, this is a list of objects and might require special handling
                 if (firstElement[0].ValueKind != JsonValueKind.String) {
-                    Console.WriteLine("Encountered a special case: {0}", inputProperty.Name);
-                    Console.WriteLine("First element of array is not a string, but a {0}", firstElement[0].ValueKind);
+                    Logger.Info($"Encountered a special case: {inputProperty.Name}" +
+                                $"\nFirst element of array is not a string, but a {firstElement[0].ValueKind}");
                     return;
                 }
 
@@ -180,9 +178,9 @@ public class NodeDBGenerator {
                 }
             } else {
                 //if the array is empty, this is a list of unknown and might require special handling later on, for now, skip it
-                Console.WriteLine("Encountered a special case: {0}", inputProperty.Name);
-                Console.WriteLine("First element of array is empty");
-                Console.WriteLine("Adding to known types as empty list...");
+                Logger.Info($"Encountered a special case: {inputProperty.Name}" +
+                            "\nFirst element of array is empty"+
+                            "\nAdding to known types as empty list...");
                 AddKnownStringList(inputProperty.Name, new List<string>());
             }
         }
@@ -193,9 +191,9 @@ public class NodeDBGenerator {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void GenerateNode(JsonElement data) {
         var node = new ExpandoObject();
-        Console.WriteLine("Generating node: {0}", data.GetProperty("name").GetString() ?? "");
+        Logger.Info($"Generating node: {data.GetProperty("name").GetString() ?? ""}" );
         foreach (var property in data.EnumerateObject()) {
-            Console.WriteLine("Adding new property: {0}\nType: {2}\nValue: {1}\n", property.Name, property.Value, property.Value.GetType());
+            Logger.Info($"Adding new property: {property.Name}\nType: {property.Value}\nValue: {property.Value.GetType()}\n");
             node.TryAdd(property.Name, property.Value);
         }
         nodes.Add(node);
@@ -229,6 +227,5 @@ public class NodeDBGenerator {
     }
     
     public List<ExpandoObject> GetNodes() => nodes;
-    
     
 }
