@@ -186,7 +186,10 @@ public class NodeDBGenerator {
         }
     }
 
-    private void ScanOutputs(JsonProperty output) { }
+    private void ScanOutputs(JsonProperty output) {
+        Logger.Debug($"Scanning outputs of node: {output.Name}");
+        foreach (var outputType in output.Value.EnumerateArray()) AddKnownType(outputType.GetString()!);
+    }
     
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void GenerateNode(JsonElement data) {
