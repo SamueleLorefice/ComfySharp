@@ -87,14 +87,19 @@ public class NodeDBGenerator {
         }
     }
     
+    /// <summary>
+    /// Generates C# classes for all known types, enums and stringLists, then also for every node
+    /// </summary>
+    /// <property name="document">JsonDocument containing the nodes off an objectInfo api call</property>
     public void GenerateClasses(JsonDocument document) {
+        Logger.Info("NodeDB Scan phase 1: building Types, Enum and StringLists DataBases");
         foreach (var node in document.RootElement.EnumerateObject())
             ScanNode(node);
         
         string types = "";
         foreach (var knownType in knownTypes)
             types += $"\t{knownType}";
-        Logger.Info($"List of recognized Types:\n{types}");
+        Logger.Debug($"List of recognized Types:\n{types}");
         Logger.Info($"Total amount of types iterated: {typeFields}\n");
         
         string enums = "";
@@ -104,8 +109,11 @@ public class NodeDBGenerator {
                 enums += $"\t{value}";
             enums += "\n";
         }
-        Logger.Info($"List of recognized Enums: {enums}");
+        Logger.Debug($"List of recognized Enums: {enums}");
         Logger.Info($"Total amount of enums iterated: {enumFields}\n");
+        
+        Logger.Info("NodeDB Scan phase 2: generating types");
+        
     }
 
     /// <summary>
@@ -131,7 +139,7 @@ public class NodeDBGenerator {
     /// Executed on the input property inside a node
     /// </summary>
     private void ScanInputs(JsonProperty input) {
-        Logger.Debug($"Scanning inputs of node: {input.Name}");
+        Logger.Trace($"Scanning inputs of node: {input.Name}");
         foreach (var inputType in input.Value.EnumerateObject()) {
             //these are related to the nodes themselves and useless for us
             if (inputType.Name == "hidden") continue;
@@ -145,7 +153,7 @@ public class NodeDBGenerator {
     /// Executed for each of the elements inside a required or optional input
     /// </summary>
     private void ScanInputField(JsonProperty inputProperty) {
-        Logger.Debug($"Scanning input field: {inputProperty.Name}");
+        Logger.Trace($"Scanning input field: {inputProperty.Name}");
         
         // if element 0 is a string, this is a type
         if (inputProperty.Value[0].ValueKind == JsonValueKind.String) {
@@ -186,8 +194,11 @@ public class NodeDBGenerator {
         }
     }
 
+    /// <summary>
+    /// Executed for each output array of every node.
+    /// </summary>
     private void ScanOutputs(JsonProperty output) {
-        Logger.Debug($"Scanning outputs of node: {output.Name}");
+        Logger.Trace($"Scanning outputs of node: {output.Name}");
         foreach (var outputType in output.Value.EnumerateArray()) AddKnownType(outputType.GetString()!);
     }
     

@@ -74,7 +74,7 @@ public class ComfyClient {
         if (req is { IsSuccessStatusCode: true, Content: not null }) {
             var doc = await req.Content.ReadFromJsonAsync<JsonDocument>();
             dbGenerator.GenerateClasses(doc);
-            //ObjectInfoParser.Parse(doc, out nodes);
+            
         }
 
         return null;
