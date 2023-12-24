@@ -1,4 +1,5 @@
 {
+  "CodeOutputPath": "CodeOutputFolderName",
   "BlacklistedNodes" : [
     "CheckpointLoader|pysssss",
     "LoraLoader|pysssss",

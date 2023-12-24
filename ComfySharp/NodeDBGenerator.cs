@@ -12,6 +12,7 @@ namespace ComfySharp;
 
 public class NodeDBGenerator {
     readonly private List<ExpandoObject> nodes;
+#region Conversion
     readonly private ConversionSettings settings;
 
     readonly private List<string> knownTypes = new();
@@ -27,7 +28,15 @@ public class NodeDBGenerator {
     private int typeFields;
     private int enumFields;
     private int stringListFields;
-    
+#endregion
+
+#region CodeGeneration
+    readonly private CSharpCodeProvider codeProvider = new();
+    readonly private CodeCompileUnit compileUnit = new();
+    readonly private CodeNamespace codeNamespace = new("ComfySharp.Types.Generated");
+    readonly private List<CodeTypeDeclaration> codeTypes = new();
+#endregion
+
     public NodeDBGenerator(ConversionSettings settings) {
         nodes = new();   
         this.settings = settings;
@@ -124,32 +133,49 @@ public class NodeDBGenerator {
         Logger.Info($"Total amount of stringLists detected\\iterated:\t {knownStringLists.Count}\t\\{knownStringLists.Count}");
         
         Logger.Info("NodeDB Scan phase 2: generating types");
-        IndentedTextWriter provider = new(new StringWriter());
-        CSharpCodeProvider codeProvider = new();
-        CodeCompileUnit compileUnit = new();
-        CodeNamespace ns = new("ComfySharp.Types.Generated");
-        ns.Imports.AddRange(new CodeNamespaceImport[] { new ("System"), new ("System.Collections.Generics"), new ("ComfySharp") });
-        compileUnit.Namespaces.Add(ns);
+        timer.Restart();
+        Logger.Info("Enum Generation starting...");
+        CodeNamespace enumNs = new("ComfySharp.Types.Generated.Enums");
+        compileUnit.Namespaces.Add(enumNs);
         foreach (var knownEnum in knownEnums) {
-            CodeTypeDeclaration enumType = new() {
-                Name = knownEnum.Key,
-                IsEnum = true,
-                IsPartial = false,
-                Attributes = MemberAttributes.Public
-            };
-            foreach (var value in knownEnum.Value) {
-                enumType.Members.Add(new CodeMemberField(knownEnum.Key, value));
-            }
-            ns.Types.Add(enumType);
-            codeProvider.GenerateCodeFromCompileUnit(compileUnit, provider, new() {
-                BlankLinesBetweenMembers = false,
-                BracingStyle = "Block",
-                VerbatimOrder = true,
-                ElseOnClosing = false,
-                IndentString = "\t"
-            });
-            var enumcode = provider.InnerWriter.ToString();
+            GenerateEnum(knownEnum.Key, knownEnum.Value, enumNs);
         }
+        GenerateEnum("BaseTypes", knownTypes, enumNs);//TODO: make a proper method that handles the edge cases, like * and comma separated multi instances
+        Logger.Info($"Enum Generation finished. Took {timer.ElapsedMilliseconds} ms");
+        timer.Restart();
+        //compileUnit.Namespaces.Add(codeNamespace);
+        //ns.Imports.AddRange(new CodeNamespaceImport[] { new ("System"), new ("System.Collections.Generics"), new ("ComfySharp") });
+    }
+
+    private void GenerateEnum(string name, List<string> enumValues, CodeNamespace ns) {
+        string path = Path.Combine(Environment.CurrentDirectory, settings.CodeOutputFolderName, $"{name}.cs");
+        Logger.Debug($"Generating enum {name} w\\ {enumValues.Count} values.\n" +
+                     $"\t\tPath: {path}");
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        IndentedTextWriter writer = new(File.CreateText(path));
+        CodeTypeDeclaration enumType = new() {
+            Name = name,
+            IsEnum = true,
+            IsPartial = false,
+            Attributes = MemberAttributes.Public
+        };
+        
+        foreach (var value in enumValues) 
+            enumType.Members.Add(new CodeMemberField(name, value));
+        
+        ns.Types.Add(enumType); //add the enum to the namespace
+        //generate the code
+        codeProvider.GenerateCodeFromCompileUnit(compileUnit, writer, new() {
+            BlankLinesBetweenMembers = false,
+            BracingStyle = "Block",
+            VerbatimOrder = true,
+            ElseOnClosing = false,
+            IndentString = "\t"
+        });
+        ns.Types.Remove(enumType);//remove the enum from the namespace, so it doesn't get generated twice
+        codeTypes.Add(enumType);//add the enum to the list of types, so we can generate the nodes later
+        writer.InnerWriter.Flush();//flush the writer
+        writer.Close();//close the writer and release the file lock
     }
 
     /// <summary>
