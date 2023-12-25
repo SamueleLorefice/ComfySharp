@@ -8,9 +8,9 @@ public class Node {
     [DataMember(Name = "name")]
     public string Name { get; set; }
     [DataMember(Name = "input")]
-    public Input Input { get; set; }
+    public Inputs Inputs { get; set; }
     [DataMember(Name = "output")]
-    public List<PrimitiveType> Outputs { get; set; }
+    public List<string> Outputs { get; set; }
     [DataMember(Name = "output_is_list")]
     public List<bool> OutputIsList { get; set; }
     [DataMember(Name = "output_name")]
@@ -26,7 +26,7 @@ public class Node {
     
     public Node() {
         Name = "";
-        Input = new();
+        Inputs = new();
         Outputs = new();
         OutputIsList = new();
         OutputNames = new();

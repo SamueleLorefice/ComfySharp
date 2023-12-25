@@ -12,6 +12,7 @@ namespace ComfySharp;
 
 public class NodeDBGenerator {
     readonly private List<ExpandoObject> nodes;
+    
 #region Conversion
     readonly private ConversionSettings settings;
 
@@ -140,13 +141,21 @@ public class NodeDBGenerator {
         foreach (var knownEnum in knownEnums) {
             GenerateEnum(knownEnum.Key, knownEnum.Value, enumNs);
         }
-        GenerateEnum("BaseTypes", knownTypes, enumNs);//TODO: make a proper method that handles the edge cases, like * and comma separated multi instances
+        //TODO: make a proper method that handles the edge cases, like * and comma separated multi instances
+        //GenerateEnum("BaseTypes", knownTypes, enumNs);
+        
+        compileUnit.Namespaces.Remove(enumNs);
         Logger.Info($"Enum Generation finished. Took {timer.ElapsedMilliseconds} ms");
+        
+        Logger.Info("Classes Generation starting...");
         timer.Restart();
-        //compileUnit.Namespaces.Add(codeNamespace);
-        //ns.Imports.AddRange(new CodeNamespaceImport[] { new ("System"), new ("System.Collections.Generics"), new ("ComfySharp") });
+        compileUnit.Namespaces.Add(codeNamespace);
+        codeNamespace.Imports.AddRange(new CodeNamespaceImport[] { new ("System"), new ("System.Collections.Generics"), new ("ComfySharp") });
+        
     }
 
+    
+    
     private void GenerateEnum(string name, List<string> enumValues, CodeNamespace ns) {
         string path = Path.Combine(Environment.CurrentDirectory, settings.CodeOutputFolderName, $"{name}.cs");
         Logger.Debug($"Generating enum {name} w\\ {enumValues.Count} values.\n" +
