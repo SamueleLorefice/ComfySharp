@@ -8,7 +8,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\ComfySharp.csproj" />
       <ProjectReference Include="..\ComfySharp\ComfySharp.csproj" />
     </ItemGroup>
 
