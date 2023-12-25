@@ -29,6 +29,7 @@ public class NodeDBGenerator {
     private int typeFields;
     private int enumFields;
     private int stringListFields;
+    private List<string> widgetEntries = new();
 #endregion
 
 #region CodeGeneration
@@ -132,6 +133,10 @@ public class NodeDBGenerator {
         Logger.Trace($"List of recognized Enums: {enums}");
         Logger.Info($"Total amount of enums detected\\iterated:\t\t {knownEnums.Count}\t\\{enumFields}");
         Logger.Info($"Total amount of stringLists detected\\iterated:\t {knownStringLists.Count}\t\\{knownStringLists.Count}");
+
+        string widgets = "";
+        foreach (var entry in widgetEntries) widgets += $"\t{entry}";
+        Logger.Info($"Possible Widget Properties: {widgets}");
         
         Logger.Info("NodeDB Scan phase 2: generating types");
         timer.Restart();
@@ -153,8 +158,6 @@ public class NodeDBGenerator {
         codeNamespace.Imports.AddRange(new CodeNamespaceImport[] { new ("System"), new ("System.Collections.Generics"), new ("ComfySharp") });
         
     }
-
-    
     
     private void GenerateEnum(string name, List<string> enumValues, CodeNamespace ns) {
         string path = Path.Combine(Environment.CurrentDirectory, settings.CodeOutputFolderName, $"{name}.cs");
@@ -229,6 +232,10 @@ public class NodeDBGenerator {
         // if element 0 is a string, this is a type
         if (inputProperty.Value[0].ValueKind == JsonValueKind.String) {
             AddKnownType(inputProperty.Value[0].ToString());
+            if (inputProperty.Value.GetArrayLength() > 1 && inputProperty.Value[1].EnumerateObject().Count() > 1)
+                foreach (var widgetEntry in inputProperty.Value[1].EnumerateObject())
+                    if(!widgetEntries.Contains(widgetEntry.Name))
+                        widgetEntries.Add(widgetEntry.Name);
             return;
         }
         
